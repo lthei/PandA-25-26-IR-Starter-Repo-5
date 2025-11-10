@@ -111,7 +111,7 @@ def print_results(query: str, results, highlight: bool):
         print(f"\n[{idx}/{total_docs}] {title_line}")
         for lm in r["line_matches"]:
             line_out = ansi_highlight(lm["text"], lm["spans"]) if highlight else lm["text"]
-            print(f"  [{lm["line_no"]:2}] {line_out}")
+            print(f"  [{lm['line_no']:2} {line_out}") # correct quotation marks
 
 
 def module_relative_path(name: str) -> str:
@@ -129,7 +129,10 @@ def load_sonnets() -> List[Dict[str, object]]:
       - Use json.load(fileobj)
     """
     # BEGIN
-    return {}
+    filename = module_relative_path("sonnets.json")
+    with open(filename, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return data
     # END
 
 CONFIG_DEFAULTS = { "highlight": True, "search_mode": "AND" }
@@ -144,7 +147,19 @@ def load_config() -> Dict[str, object]:
       - If it exists, JSON-decode it and validate keys, falling back to the defaults in CONFIG_DEFAULTS for missing keys.
     """
     # BEGIN
-    return dict(CONFIG_DEFAULTS)
+    filename = module_relative_path("config.json")
+
+    if os.path.exists(filename):
+        with open(filename, "r", encoding="utf-8") as f:
+            cfg = json.load(f)
+        # make sure both expected keys exist
+        if "highlight" not in cfg:
+            cfg["highlight"] = CONFIG_DEFAULTS["highlight"]
+        if "search_mode" not in cfg:
+            cfg["search_mode"] = CONFIG_DEFAULTS["search_mode"]
+        return cfg
+    else:
+        return dict(CONFIG_DEFAULTS)
     # END
 
 def save_config(cfg: Dict[str, object]) -> None:
@@ -156,7 +171,9 @@ def save_config(cfg: Dict[str, object]) -> None:
       - Use indent=2 and ensure_ascii=False
     """
     # BEGIN
-    pass
+    filename = module_relative_path("config.json")
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2, ensure_ascii=False)
     # END
 
 def main() -> None:
@@ -192,12 +209,21 @@ def main() -> None:
                     config["highlight"] = (parts[1].lower() == "on")
                     print("Highlighting", "ON" if config["highlight"] else "OFF")
                     # ToDo 3: Use save_config(...) to write the config.json file when the highlight setting changes
+                    save_config(config)
                 else:
                     print("Usage: :highlight on|off")
                 continue
 
             # ToDo 0 - Copy (and adapt) your implementation of the search mode CLI from part 4 of the exercise
-
+            if raw.startswith(":search-mode"):
+                parts = raw.split()
+                if len(parts) == 2 and parts[1].lower() in ("and", "or"):
+                    config["search_mode"] = parts[1].upper() # adapt search_mode
+                    print("Search mode set to", config["search_mode"]) # adapt search_mode again
+                    save_config(config) # save_config (as above)
+                else:
+                    print("Usage: :search-mode AND|OR")
+                continue
             print("Unknown command. Type :help for commands.")
             continue
 
@@ -228,6 +254,12 @@ def main() -> None:
                         else:
                             # Not in both. No match!
                             combined_result["matches"] = 0
+                    elif config["search_mode"] == "OR": # adapt search_mode
+                        # OR: keep any sonnet that matches at least one of the search terms
+                        if combined_result["matches"] > 0 and result["matches"] > 0:
+                            combined_results[i] = combine_results(combined_result, result)
+                        elif combined_result["matches"] == 0 and result["matches"] > 0:
+                            combined_results[i] = result
 
         print_results(raw, combined_results, bool(config["highlight"]))
 
