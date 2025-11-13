@@ -129,10 +129,10 @@ def load_sonnets() -> List[Dict[str, object]]:
       - Use json.load(fileobj)
     """
     # BEGIN
-    filename = module_relative_path("sonnets.json")
-    with open(filename, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    return data
+    filename = module_relative_path("sonnets.json") # get the absolute path of sonnets.json (relative to this module)
+    with open(filename, "r", encoding="utf-8") as f: # open the JSON file in read mode using UTF-8 encoding
+        data = json.load(f) # parse the JSON file contents into a Python list of dictionaries
+    return data # return the parsed data (list of sonnet dicts)
     # END
 
 CONFIG_DEFAULTS = { "highlight": True, "search_mode": "AND" }
@@ -147,19 +147,18 @@ def load_config() -> Dict[str, object]:
       - If it exists, JSON-decode it and validate keys, falling back to the defaults in CONFIG_DEFAULTS for missing keys.
     """
     # BEGIN
-    filename = module_relative_path("config.json")
+    filename = module_relative_path("config.json") # get the absolute path of config.json
 
-    if os.path.exists(filename):
-        with open(filename, "r", encoding="utf-8") as f:
-            cfg = json.load(f)
-        # make sure both expected keys exist
-        if "highlight" not in cfg:
-            cfg["highlight"] = CONFIG_DEFAULTS["highlight"]
-        if "search_mode" not in cfg:
-            cfg["search_mode"] = CONFIG_DEFAULTS["search_mode"]
-        return cfg
+    if os.path.exists(filename): # check if the config file exists
+        with open(filename, "r", encoding="utf-8") as f: # open the file if it exists, in read mode, using UTF-8 encoding
+            cfg = json.load(f) # load the JSON data into a Python dictionary
+        if "highlight" not in cfg: # check if the key "highlight" is missing in the loaded config
+            cfg["highlight"] = CONFIG_DEFAULTS["highlight"] # if missing, set it to the default value
+        if "search_mode" not in cfg: # check if the key "search_mode" is missing in the loaded config
+            cfg["search_mode"] = CONFIG_DEFAULTS["search_mode"]  # if missing, set it to the default value
+        return cfg # return the (possibly fixed) config dictionary
     else:
-        return dict(CONFIG_DEFAULTS)
+        return dict(CONFIG_DEFAULTS) # if the config file doesn’t exist, return a copy of the defaults
     # END
 
 def save_config(cfg: Dict[str, object]) -> None:
@@ -171,9 +170,9 @@ def save_config(cfg: Dict[str, object]) -> None:
       - Use indent=2 and ensure_ascii=False
     """
     # BEGIN
-    filename = module_relative_path("config.json")
-    with open(filename, "w", encoding="utf-8") as f:
-        json.dump(cfg, f, indent=2, ensure_ascii=False)
+    filename = module_relative_path("config.json") # get the absolute path to the config.json file
+    with open(filename, "w", encoding="utf-8") as f:  # open the config file with UTF-8 in write mode, overwriting existing content
+        json.dump(cfg, f, indent=2, ensure_ascii=False) # write the config dictionary into the file as pretty-printed JSON
     # END
 
 def main() -> None:
@@ -218,7 +217,7 @@ def main() -> None:
             if raw.startswith(":search-mode"):
                 parts = raw.split()
                 if len(parts) == 2 and parts[1].lower() in ("and", "or"):
-                    config["search_mode"] = parts[1].upper() # adapt search_mode
+                    config["search_mode"] = parts[1].upper() # adapt search_mode (like "highlight" above
                     print("Search mode set to", config["search_mode"]) # adapt search_mode again
                     save_config(config) # save_config (as above)
                 else:
